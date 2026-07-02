@@ -1,105 +1,129 @@
 # CORAL_P
 
-**Shotgun-metagenomic reads → taxonomic relative abundance** for the CORAL ingestible
-core/shell sampling device (Ramadi Lab, NYU). This is the minimal profiling pipeline: it takes raw
-shotgun FASTQs for the device **core**, **shell**, **stool**, and **control** samples and produces
-per-sample and merged **MetaPhlAn SGB relative-abundance tables** and a stacked genus-composition figure.
+**Shotgun reads → taxonomic relative abundance → composition figure** for the CORAL ingestible
+core/shell sampling device (Ramadi Lab, NYU). Minimal, reproducible pipeline:
+**fastp → bowtie2 host removal → MetaPhlAn 4 → merged relative-abundance table → stacked genus
+composition** (drawn both with matplotlib and with phyloseq).
 
-> Extracted from the full CoralShot analysis project — this repo contains **only** the
-> read → relative-abundance stages (QC → host removal → taxonomic profiling). Assembly/MAGs, strain
-> analysis, function (HUMAnN), virome, and statistics are **not** included here.
+> 📋 **Copy-paste runbook:** [`RUN_AND_VERIFY.txt`](RUN_AND_VERIFY.txt) — every command, grouped and ready.
+> Extracted from the parent **CoralShot** project — this repo is the read→relative-abundance subset only
+> (no assembly/MAGs, strain, HUMAnN, virome, or stats).
+
+---
+
+## ▶ Run it (NYU Torch — fastest path)
+
+The MetaPhlAn DB, prebuilt host index, and raw reads are already staged in the parent project, so on
+Torch you reuse them and go straight to running — **no database download, no index build:**
+
+```bash
+cd /scratch/sr7729/CORAL_P
+source env.sh                                     # sets BASE, ACCT, CPU_QOS, caches, offline fixes
+rmdir db Shotgun 2>/dev/null                      # clear empty placeholders (else ln nests the link inside)
+ln -s /scratch/sr7729/coralshot/db      db        # MetaPhlAn DB + prebuilt bowtie2 host index
+ln -s /scratch/sr7729/coralshot/Shotgun Shotgun   # raw FASTQs (manifest.tsv + filelist.txt are committed)
+
+# pipeline: QC -> trim -> host removal -> MetaPhlAn -> merge   (SLURM; ~a few hours on 53 libraries)
+J1=$(bash scripts/submit.sh s1     | awk '{print $NF}')
+J2=$(bash scripts/submit.sh s2 $J1 | awk '{print $NF}')
+J3=$(bash scripts/submit.sh s3 $J2 | awk '{print $NF}')
+J4=$(bash scripts/submit.sh s4 $J3 | awk '{print $NF}')
+sbatch -A "$ACCT" --qos="$CPU_QOS" --dependency=afterok:$J4 scripts/s4b_merge_metaphlan.sbatch
+squeue -u $USER
+
+# figures (after the merge finishes) -> results/04_mpa/merged_sgb.tsv must exist
+conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py         # matplotlib
+BASE=$PWD /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/make_phyloseq.R                # phyloseq object + figure
+```
+
+The `cs_profile` and `cs_viz` conda envs already exist on Torch. Create them from `envs/*.yml` if missing
+(see *Requirements*). **Already have `merged_sgb.tsv`?** Skip the pipeline — just run the two figure
+commands (seconds).
+
+---
 
 ## What it produces
 
-| Output | Tool | Level |
+| Output | Made by | What it is |
 |---|---|---|
-| `results/04_mpa/merged_sgb.tsv` | MetaPhlAn 4 | species / SGB relative abundance (%) |
-| `figures/stacked_composition.png` | `make_stacked_composition.py` | stacked genus composition — controls vs stool / core / shell |
+| `results/04_mpa/merged_sgb.tsv` | MetaPhlAn 4 (`s4` + `s4b`) | species/SGB **relative abundance (%)**, one column per library |
+| `figures/stacked_composition.png` | `make_stacked_composition.py` | stacked genus composition — controls \| stool \| core \| shell |
+| `figures/stacked_composition_phyloseq.png` | `make_phyloseq.R` | same, drawn with **phyloseq** (faceted CONTROL \| core \| shell \| stool) |
+| `results/phyloseq/coralp_ps.rds` | `make_phyloseq.R` | **phyloseq object**: 817 species × 53 samples, full taxonomy + sample_data |
 
-Each column is one library; library naming encodes compartment and group (below).
+## Verify the relative abundance independently (phyloseq)
+
+phyloseq is a *container*, not a profiler — load the same MetaPhlAn table and it reports the same
+numbers. Two gotchas that otherwise cause a false mismatch: **filter to one rank** (genus = `|g__`,
+not `|s__`) and **close each sample to sum = 1**. `phyloseq_relabund.R` does this and reproduces the
+plotted numbers to **5×10⁻⁹** (verified):
+
+```bash
+BASE=$PWD /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/phyloseq_relabund.R
+#   -> results/04_mpa/phyloseq_genus_relabund.tsv   (should diff to ~0 against ours)
+```
+Load the object in R: `ps <- readRDS("results/phyloseq/coralp_ps.rds")` — then `tax_glom(ps,"Genus")`
+relative abundance equals the `|g__` numbers exactly (Bifidobacterium P01M_C = 0.08849).
 
 ## Sample naming — control / core / stool / shell
 
 Library IDs are `<subject><arm>_<compartment>`:
+`_C` = **core** · `_S` = **shell** · `_F` = **stool (feces)**.
+Controls = `C0x` (core+shell only); participants = `P0x` (core+shell+stool).
+Full sheet with subject/arm/i7/i5/read-counts: `sample_manifest.tsv`.
 
-- **compartment suffix:** `_C` = **core**, `_S` = **shell**, `_F` = **stool (feces)**
-- **`group` column:** `control` (un-ingested control units — core+shell only) vs `participant` (core+shell+stool)
-- examples: `P01M_C` = participant P01, arm M, **core**; `C01B_S` = control C01, arm B, **shell**
+---
 
-See `sample_manifest.tsv` for the full sheet (subject, arm, compartment, i7/i5, read counts).
-
-## Pipeline
+## Pipeline (from scratch — non-Torch or a new run)
 
 ```
 raw FASTQ  (Shotgun/)
   s1_qc            FastQC on raw reads
   s2_fastp         adapter / quality trim (fastp)
-  s3_host          host-read removal (bowtie2 vs T2T-CHM13 + GRCh38) -> microbial reads
+  s3_host          host-read removal (bowtie2 vs T2T-CHM13 + GRCh38)
   s4_metaphlan     MetaPhlAn 4 per sample
-  s4b_merge_metaphlan   merge_metaphlan_tables.py -> results/04_mpa/merged_sgb.tsv
-
-  merged_sgb.tsv -> make_stacked_composition.py -> figures/stacked_composition.png
+  s4b_merge        merge_metaphlan_tables.py -> results/04_mpa/merged_sgb.tsv
+  figures          make_stacked_composition.py (matplotlib) + make_phyloseq.R (phyloseq)
 ```
 
-Setup stages: `s0_build_host` (bowtie2 host index) · `stage_dbs.sh` (stage host + MetaPhlAn DBs) ·
-`build_manifest.py` (sample sheet).
-
-## Quick start (NYU Torch HPC / SLURM)
+Full setup when the DBs are **not** already staged:
 
 ```bash
-# 0. paths + caches + offline fixes  (edit BASE in env.sh for another system)
-source env.sh                       # sets BASE, ACCT, CPU_QOS
-mkdir -p logs                       # SLURM opens -o logs/... at job start (also kept via logs/.gitkeep)
-
-# 1. conda env for profiling (MetaPhlAn)
-conda env create -p /scratch/sr7729/conda_envs/cs_profile -f envs/cs_profile.yml
-
-# 2. stage reference DBs (host + MetaPhlAn), then build the bowtie2 host index
-bash   scripts/stage_dbs.sh 2>&1 | tee logs/stage_dbs.log   # host + MetaPhlAn only
-sbatch -A "$ACCT" --qos="$CPU_QOS" scripts/s0_build_host.sbatch
-
-# 3. place raw FASTQs in Shotgun/  (named <SID>_S##_L002_R{1,2}_001.fastq.gz).
-#    manifest.tsv + filelist.txt for the original 53-library run are COMMITTED, so you can run as-is
-#    once the FASTQs are present. To REGENERATE the sheet for a NEW run, build_manifest.py also needs
-#    the bcl2fastq run-report HTML at $BASE/<run>.html (barcode/QC metadata are merged from it):
-python scripts/build_manifest.py    # -> manifest.tsv, filelist.txt, asm_units.tsv, barcode_audit.txt
-
-# 4. run: QC -> trim -> host removal -> profiling  (submit.sh chains SLURM dependencies)
-J1=$(bash scripts/submit.sh s1     | awk '{print $NF}')
-J2=$(bash scripts/submit.sh s2 $J1 | awk '{print $NF}')
-J3=$(bash scripts/submit.sh s3 $J2 | awk '{print $NF}')
-J4=$(bash scripts/submit.sh s4 $J3 | awk '{print $NF}')     # MetaPhlAn relative abundance
-
-# 5. merge the per-sample MetaPhlAn profiles into the relative-abundance table
-sbatch -A "$ACCT" --qos="$CPU_QOS" --dependency=afterok:$J4 scripts/s4b_merge_metaphlan.sbatch  # -> merged_sgb.tsv
-
-# 6. stacked genus-composition figure (login node; needs cs_viz = pandas + numpy + matplotlib)
-conda env create -p /scratch/sr7729/conda_envs/cs_viz -f envs/cs_viz.yml
-conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py  # -> figures/stacked_composition.png
+source env.sh
+mkdir -p logs
+conda env create -p /scratch/sr7729/conda_envs/cs_profile -f envs/cs_profile.yml   # MetaPhlAn (+ R/phyloseq on Torch)
+conda env create -p /scratch/sr7729/conda_envs/cs_viz     -f envs/cs_viz.yml       # matplotlib figure
+bash   scripts/stage_dbs.sh 2>&1 | tee logs/stage_dbs.log                          # host + MetaPhlAn DBs
+sbatch -A "$ACCT" --qos="$CPU_QOS" scripts/s0_build_host.sbatch                    # build bowtie2 host index
+# put FASTQs in Shotgun/ (named <SID>_S##_L002_R{1,2}_001.fastq.gz); manifest.tsv + filelist.txt are committed.
+# To regenerate the sheet for a NEW run, build_manifest.py additionally needs the bcl2fastq run-report HTML:
+python scripts/build_manifest.py     # -> manifest.tsv, filelist.txt, asm_units.tsv, barcode_audit.txt
+# then run the s1->s4->s4b chain + figures as in "Run it" above.
 ```
 
-> `submit.sh` still lists other stages (`s5`, `s6`, `s7`, …) inherited from the parent project —
-> **only `s1`–`s4` apply here**; the other branches reference scripts not included in this repo.
+> `submit.sh` still lists parent-project stages (`s5`, `s6`, `s7`, …) — **only `s1`–`s4` apply here**;
+> the other cases reference scripts not shipped in this subset.
 
 ## Requirements
 
-- **Cluster:** NYU Torch HPC (SLURM). `env.sh` encodes Torch-specific fixes (tool caches redirected
-  off an inode-full `/home`; node-local bound `$TMPDIR`; offline model/DB caches). For another
-  system, edit `BASE`, the SLURM account/QOS, and the temp/cache paths in `env.sh`.
-- **conda:** `envs/cs_profile.yml` — MetaPhlAn 4 (+ seqkit). The QC/host tools (FastQC, fastp,
-  bowtie2, samtools) come from the Torch `module load bioinformatics/20260224` bundle — install or
-  module-load equivalents on another system.
-- **conda (figure):** `envs/cs_viz.yml` — pandas + numpy + matplotlib for `make_stacked_composition.py`.
+- **Cluster:** NYU Torch HPC (SLURM). `env.sh` encodes Torch-specific fixes (caches off an inode-full
+  `/home`; node-local bound `$TMPDIR`; offline caches). For another system, edit `BASE`, the SLURM
+  account/QOS, and the cache/temp paths in `env.sh`.
+- **conda `cs_profile`** (`envs/cs_profile.yml`): MetaPhlAn 4 (+ seqkit). QC/host tools (FastQC, fastp,
+  bowtie2, samtools) come from the Torch `module load bioinformatics/20260224` bundle.
+- **conda `cs_viz`** (`envs/cs_viz.yml`): pandas + numpy + matplotlib (for `make_stacked_composition.py`).
+- **R + phyloseq** (for `make_phyloseq.R` / `phyloseq_relabund.R`): on Torch these run via
+  `cs_profile`'s `Rscript` with phyloseq on the `coral_reef/R_libs` path (set inside the scripts);
+  elsewhere install `phyloseq` + `ggplot2`.
 - **Databases (not in git):** MetaPhlAn `mpa_vJun23_CHOCOPhlAnSGB_202403`; bowtie2 host index
-  (T2T-CHM13 + GRCh38). Staged by `stage_dbs.sh` / `s0_build_host`.
+  (T2T-CHM13 + GRCh38). Staged by `stage_dbs.sh` / `s0_build_host` (or reused via the symlinks above).
 
 ## Not included
 
-Raw FASTQs, reference DBs, and pipeline outputs are **gitignored** (regenerated). This repository is
-code only. Downstream analysis (assembly, MAGs, strain sharing, function, virome, statistics) lives
-in the parent CoralShot project.
+Raw FASTQs, reference DBs, and pipeline outputs are **gitignored** (regenerated) — except the two
+figures and the phyloseq `.rds`, committed as ready-to-use artifacts. This repo is otherwise code
+only; downstream analysis (assembly, MAGs, strain, function, virome, stats) lives in parent CoralShot.
 
 ## License
 
-See [`LICENSE`](LICENSE). Default is MIT — **confirm or replace** per Ramadi Lab / NYU policy before
-any public release.
+See [`LICENSE`](LICENSE) — MIT.
