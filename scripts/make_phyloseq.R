@@ -34,6 +34,9 @@ taxid <- make.unique(tax[, "Species"]); rownames(otu) <- taxid; rownames(tax) <-
 sm <- read.delim(file.path(BASE, "sample_manifest.tsv"), check.names = FALSE)
 sm <- sm[match(samp, sm$sample_id), ]; rownames(sm) <- samp
 sm$compartment <- c(C = "core", S = "shell", F = "stool")[substr(samp, nchar(samp), nchar(samp))]
+# separate controls (C0x) into their own panel; participants (P0x) keep their compartment
+sm$panel <- factor(ifelse(startsWith(samp, "C"), "CONTROL", sm$compartment),
+                   levels = c("CONTROL", "core", "shell", "stool"))
 
 ps <- phyloseq(otu_table(otu, taxa_are_rows = TRUE),
                tax_table(as.matrix(tax)),
@@ -52,8 +55,8 @@ tax_table(psgr) <- tax_table(as.matrix(tt))
 psgr <- tax_glom(psgr, taxrank = "Genus", NArm = FALSE)                     # lump the "Other"
 
 p <- plot_bar(psgr, fill = "Genus") +
-  facet_grid(~ compartment, scales = "free_x", space = "free") +
-  labs(title = "Genus composition (phyloseq) — relative abundance",
+  facet_grid(~ panel, scales = "free_x", space = "free") +
+  labs(title = "Genus composition (phyloseq) — controls separated | participants: core / shell / stool",
        x = NULL, y = "relative abundance") +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, size = 4, hjust = 1),
                      legend.text = element_text(size = 7))
