@@ -1,0 +1,10 @@
+name: cs_profile
+channels: [conda-forge, bioconda]
+dependencies:
+  - python=3.10
+  - metaphlan=4.1.1
+  # humann moved to its own env (cs_humann): humann=3.9 is a py312 build, conflicts with this env's python 3.10
+  - bracken=2.9
+  - seqkit=2.8.2
+  - sourcepredict        # optional source-prediction helper
+  - pandas

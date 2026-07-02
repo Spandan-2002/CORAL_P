@@ -1,0 +1,32 @@
+# --- raw sequencing data ---
+Shotgun/
+*.fastq.gz
+*.fq.gz
+
+# --- reference DBs, outputs, intermediates (regenerated; large) ---
+db/
+work/
+results/
+cache/
+
+# keep the logs/ dir on a fresh clone (SLURM opens -o logs/... before the job body runs)
+logs/*
+!logs/.gitkeep
+
+# --- generated at DB-staging time ---
+manifest_dbs.tsv
+# NOTE: filelist.txt IS committed (the 53-library raw-QC file list; regenerate with build_manifest.py)
+
+# --- large downloads / archives ---
+*.zip
+*.tar.gz
+*.sif
+
+# --- python / OS ---
+__pycache__/
+*.pyc
+.DS_Store
+
+# --- harness / local ---
+.claude/
+.nextflow/
