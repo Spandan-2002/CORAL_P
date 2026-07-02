@@ -13,6 +13,10 @@ cache/
 logs/*
 !logs/.gitkeep
 
+# keep the figures/ dir; the images themselves are generated output
+figures/*
+!figures/.gitkeep
+
 # --- generated at DB-staging time ---
 manifest_dbs.tsv
 # NOTE: filelist.txt IS committed (the 53-library raw-QC file list; regenerate with build_manifest.py)

@@ -16,6 +16,7 @@ per-sample and merged **relative-abundance tables** (MetaPhlAn SGB + Kraken2/Bra
 | `results/04_mpa/merged_sgb.tsv` | MetaPhlAn 4 | species / SGB relative abundance (%) |
 | `results/06_bracken/merged.S.tsv` | Kraken2 + Bracken | species (counts + fraction) |
 | `results/06_bracken/merged.G.tsv` | Kraken2 + Bracken | genus (counts + fraction) |
+| `figures/stacked_composition.png` | `make_stacked_composition.py` | stacked genus composition — controls vs stool / core / shell |
 
 Each column is one library; library naming encodes compartment and group (below).
 
@@ -40,6 +41,8 @@ raw FASTQ  (Shotgun/)
   │    s4b_merge_metaphlan   merge_metaphlan_tables.py -> results/04_mpa/merged_sgb.tsv
   └─ s6_kraken_bracken Kraken2 (PlusPF) + Bracken per sample
         s6b_merge_bracken  combine_bracken_outputs.py -> results/06_bracken/merged.{S,G}.tsv
+
+  merged_sgb.tsv -> make_stacked_composition.py -> figures/stacked_composition.png
 ```
 
 Setup stages: `s0_build_host` (bowtie2 host index) · `s0_bracken` (Bracken k-mer DB) ·
@@ -76,6 +79,10 @@ J6=$(bash scripts/submit.sh s6 $J3 | awk '{print $NF}')     # Kraken2 / Bracken
 # 5. merge per-sample profiles into the two relative-abundance tables
 sbatch -A "$ACCT" --qos="$CPU_QOS" --dependency=afterok:$J4 scripts/s4b_merge_metaphlan.sbatch  # -> merged_sgb.tsv
 sbatch -A "$ACCT" --qos="$CPU_QOS" --dependency=afterok:$J6 scripts/s6b_merge_bracken.sbatch    # -> merged.S.tsv / merged.G.tsv
+
+# 6. stacked genus-composition figure (login node; needs cs_viz = pandas + numpy + matplotlib)
+conda env create -p /scratch/sr7729/conda_envs/cs_viz -f envs/cs_viz.yml
+conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py  # -> figures/stacked_composition.png
 ```
 
 > `submit.sh` also lists downstream stages (`s5`, `s7`, `s8`, …) inherited from the parent project —
@@ -89,6 +96,7 @@ sbatch -A "$ACCT" --qos="$CPU_QOS" --dependency=afterok:$J6 scripts/s6b_merge_br
 - **conda:** `envs/cs_profile.yml` — MetaPhlAn 4, Bracken, seqkit. **Kraken2**, plus the QC/host
   tools (FastQC, fastp, bowtie2, samtools), come from the Torch `module load bioinformatics/20260224`
   bundle — install or module-load equivalents on another system.
+- **conda (figure):** `envs/cs_viz.yml` — pandas + numpy + matplotlib for `make_stacked_composition.py`.
 - **Databases (not in git):** MetaPhlAn `mpa_vJun23_CHOCOPhlAnSGB_202403`; Kraken2 PlusPF; Bracken
   k-mer distribution; bowtie2 host index (T2T-CHM13 + GRCh38). Staged by `stage_dbs.sh` / `s0_*`.
 
