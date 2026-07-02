@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# Stage the reference databases for the reads -> relative-abundance pipeline.
+# Stage the reference databases for the reads -> relative-abundance pipeline (MetaPhlAn-only).
 # RUN ON THE LOGIN NODE (compute nodes have no internet).
 #   bash scripts/stage_dbs.sh 2>&1 | tee logs/stage_dbs.log
 # Idempotent-ish: skips a target if its sentinel exists. Logs sizes to manifest_dbs.tsv.
-# Stages ONLY the DBs this subset needs: host (GRCh38 + T2T-CHM13 + PhiX), MetaPhlAn 4 SGB,
-# and Kraken2 PlusPF. (The full CoralShot project also stages HUMAnN / CheckM2 / GTDB-Tk /
-# geNomad / CheckV / AMRFinder / antiSMASH — those are out of scope here and are omitted.)
+# Stages ONLY: host (GRCh38 + T2T-CHM13 + PhiX) and the MetaPhlAn 4 SGB DB.
 set -euo pipefail
 source /scratch/sr7729/CORAL_P/env.sh
 module load bioinformatics/20260224 || true   # for datasets/bowtie2-build if needed
-mkdir -p "$DB"/{host,metaphlan,kraken2_pluspf} "$BASE/logs"
+mkdir -p "$DB"/{host,metaphlan} "$BASE/logs"
 MAN=$BASE/manifest_dbs.tsv
 [ -f "$MAN" ] || echo -e "name\tpath\tbytes\tmd5_or_note\tdate" > "$MAN"
 log(){ local n="$1" p="$2"; local b; b=$(du -sb "$p" 2>/dev/null | cut -f1 || echo 0); \
@@ -41,13 +39,4 @@ if [ ! -e "$DB/metaphlan/mpa_vJun23_CHOCOPhlAnSGB_202403.pkl" ]; then need 30
   metaphlan --install --index mpa_vJun23_CHOCOPhlAnSGB_202403 --bowtie2db "$DB/metaphlan"
   conda deactivate; log MetaPhlAn "$DB/metaphlan"; fi
 
-# 4. Kraken2 PlusPF (~160 GB; pin exact dated build) -----------------------------
-# Pick the latest k2_pluspf_YYYYMMDD from https://benlangmead.github.io/aws-indexes/k2 and set K2URL.
-K2URL="${K2URL:-https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20240904.tar.gz}"
-if [ ! -e "$DB/kraken2_pluspf/hash.k2d" ]; then need 200
-  wget -q -O "$DB/kraken2_pluspf.tar.gz" "$K2URL"
-  tar xzf "$DB/kraken2_pluspf.tar.gz" -C "$DB/kraken2_pluspf" && rm -f "$DB/kraken2_pluspf.tar.gz"
-  echo "$K2URL" > "$DB/kraken2_pluspf/SOURCE_URL.txt"; log Kraken2_PlusPF "$DB/kraken2_pluspf"; fi
-# NOTE: the Bracken k-mer distribution is BUILT on a compute node -> scripts/s0_bracken.sbatch
-
-echo "DB staging complete (host + MetaPhlAn + Kraken2 PlusPF). See $MAN"
+echo "DB staging complete (host + MetaPhlAn). See $MAN"
