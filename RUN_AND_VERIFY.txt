@@ -77,6 +77,13 @@
 #   - using Bracken counts instead of the MetaPhlAn table -> different profiler, different %
 #   - forgetting MetaPhlAn values are ALREADY relative abundance (%), not raw counts
 
+# Full phyloseq OBJECT + phyloseq-native figure (already committed; regenerate with):
+#### BASE=/scratch/sr7729/CORAL_P /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/make_phyloseq.R
+# -> results/phyloseq/coralp_ps.rds            (817 species x 53 samples; full taxonomy + sample_data)
+# -> figures/stacked_composition_phyloseq.png  (plot_bar genus composition, faceted by compartment)
+#    load in R:  ps <- readRDS("results/phyloseq/coralp_ps.rds")
+#    tax_glom(ps,"Genus") relative abundance == the verified |g__ numbers (Bifidobacterium 0.08849)
+
 
 FAST PATH — just the figure (seconds; from an existing merged table)
 --------------------------------------------------------------------
