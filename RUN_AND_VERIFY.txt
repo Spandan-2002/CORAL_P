@@ -1,0 +1,87 @@
+============================================================================
+ CORAL_P — run & independently verify  (NYU Torch HPC / SLURM)
+============================================================================
+ Repo : /scratch/sr7729/CORAL_P   |   github.com/Spandan-2002/CORAL_P
+ Flow : raw reads -> fastp trim -> bowtie2 host removal -> MetaPhlAn
+        -> merge -> figures/stacked_composition.png
+ Note : lines starting with #### are the exact commands to run.
+============================================================================
+
+
+0) ONE-TIME SETUP
+-----------------
+#### cd /scratch/sr7729/CORAL_P
+#### source env.sh                 # sets BASE, ACCT, CPU_QOS, caches, offline fixes
+#### mkdir -p logs
+
+# conda envs (skip either if it already exists on this cluster):
+#### conda env create -p /scratch/sr7729/conda_envs/cs_profile -f envs/cs_profile.yml   # MetaPhlAn
+#### conda env create -p /scratch/sr7729/conda_envs/cs_viz     -f envs/cs_viz.yml       # figure
+
+# reference databases + host index --------------------------------------------
+#   Option A (fresh / portable): download + build
+#### bash   scripts/stage_dbs.sh 2>&1 | tee logs/stage_dbs.log     # host + MetaPhlAn DBs
+#### sbatch -A "$ACCT" --qos="$CPU_QOS" scripts/s0_build_host.sbatch
+#   Option B (THIS cluster shortcut): reuse CoralShot's already-staged DBs
+#   (rmdir first clears any empty leftover dir, else ln nests the link INSIDE it)
+#### rmdir db 2>/dev/null; ln -sfn /scratch/sr7729/coralshot/db db
+
+# raw FASTQs  (manifest.tsv + filelist.txt for the 53-lib run are committed) ---
+#   Option A: place your FASTQs in Shotgun/ named <SID>_S##_L002_R{1,2}_001.fastq.gz
+#   Option B (THIS cluster shortcut): reuse CoralShot's reads
+#### rmdir Shotgun 2>/dev/null; ln -sfn /scratch/sr7729/coralshot/Shotgun Shotgun
+
+
+1) RUN THE PIPELINE (SLURM)  -- regenerates everything from reads
+----------------------------------------------------------------
+#### cd /scratch/sr7729/CORAL_P
+#### source env.sh
+#### J1=$(bash scripts/submit.sh s1     | awk '{print $NF}')   # FastQC
+#### J2=$(bash scripts/submit.sh s2 $J1 | awk '{print $NF}')   # fastp trim
+#### J3=$(bash scripts/submit.sh s3 $J2 | awk '{print $NF}')   # bowtie2 host removal
+#### J4=$(bash scripts/submit.sh s4 $J3 | awk '{print $NF}')   # MetaPhlAn
+#### sbatch -A "$ACCT" --qos="$CPU_QOS" --dependency=afterok:$J4 scripts/s4b_merge_metaphlan.sbatch
+#### squeue -u $USER          # watch; ~a few hours on 53 libs
+# output: results/04_mpa/merged_sgb.tsv
+
+
+2) MAKE THE FIGURE
+------------------
+#### conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py
+# output: figures/stacked_composition.png
+
+
+3) INDEPENDENTLY VERIFY vs CoralShot
+------------------------------------
+# figure (the deliverable) -> should be BIT-IDENTICAL (same md5):
+#### md5sum figures/stacked_composition.png /scratch/sr7729/coralshot/figures/stacked_composition.png
+
+# table -> dominant genera identical; trace taxa may wobble (normal MetaPhlAn run-to-run noise):
+#### NEW=results/04_mpa/merged_sgb.tsv
+#### OLD=/scratch/sr7729/coralshot/results/04_mpa/merged_sgb.tsv
+#### echo "rows: $(wc -l <$NEW) vs $(wc -l <$OLD)"
+#### diff <(grep '|g__' $NEW | grep -v '|s__') <(grep '|g__' $OLD | grep -v '|s__') | head
+
+
+FAST PATH — just the figure (seconds; from an existing merged table)
+--------------------------------------------------------------------
+#### cd /scratch/sr7729/CORAL_P
+#### mkdir -p results/04_mpa
+#### cp /scratch/sr7729/coralshot/results/04_mpa/merged_sgb.tsv results/04_mpa/
+#### conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py
+
+
+WHAT TO EXPECT
+--------------
+- stacked_composition.png : identical md5 to CoralShot  => PASS
+- merged_sgb.tsv          : dominant taxa identical; a few trace taxa may differ by run
+                            (normal MetaPhlAn noise, below the figure's top-14 genus cutoff)
+- Runtime (53 libs, DBs staged) : a few hours (host removal + MetaPhlAn dominate)
+- SLURM : partition cs; per-task 8-32 cores; arrays run 12-24 samples in parallel
+
+
+SAMPLE NAMING
+-------------
+<subject><arm>_<compartment> :  _C = core   _S = shell   _F = stool (feces)
+group : control (C0x, core+shell only)  vs  participant (P0x, core+shell+stool)
+============================================================================
