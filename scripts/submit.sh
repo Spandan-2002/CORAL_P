@@ -23,7 +23,7 @@ cd "$BASE"
 STAGE="${1:?usage: submit.sh <stage> [dep_jobid]}"; DEP="${2:-}"
 dep_arg(){ [ -n "$DEP" ] && echo "--dependency=afterok:$DEP" || true; }
 nmanifest=$(($(wc -l < manifest.tsv) - 1)); nfiles=$(wc -l < filelist.txt)
-nunits=$(($(wc -l < asm_units.tsv) - 1))
+nunits=$( [ -f asm_units.tsv ] && echo $(($(wc -l < asm_units.tsv) - 1)) || echo 0 )   # assembly-only; not shipped in this MetaPhlAn-only repo
 assert(){ [ "$1" -eq "$2" ] || { echo "ASSERT FAIL: $3 ($1 != $2)"; exit 1; }; }
 
 case "$STAGE" in
