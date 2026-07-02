@@ -63,6 +63,21 @@
 #### diff <(grep '|g__' $NEW | grep -v '|s__') <(grep '|g__' $OLD | grep -v '|s__') | head
 
 
+3b) CROSS-CHECK the relative abundance via phyloseq (R) -- reproduces our numbers EXACTLY
+-----------------------------------------------------------------------------------------
+# phyloseq is a CONTAINER, not a profiler: it reports the MetaPhlAn table you load.
+# Verified to match our genus relative abundance to 5e-9 (bit-identical) IF you
+#   (1) filter to ONE rank (genus = clade with |g__ and NOT |s__), and
+#   (2) close each sample to sum = 1.  Both are done inside the script below.
+#### BASE=/scratch/sr7729/CORAL_P /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/phyloseq_relabund.R
+# -> results/04_mpa/phyloseq_genus_relabund.tsv   (genus x sample relative abundance)
+#
+# Why a NAIVE phyloseq load gives DIFFERENT numbers (the usual scrutiny mismatch):
+#   - loading ALL ranks at once -> each read counted at every rank (kingdom..SGB) -> wrong
+#   - using Bracken counts instead of the MetaPhlAn table -> different profiler, different %
+#   - forgetting MetaPhlAn values are ALREADY relative abundance (%), not raw counts
+
+
 FAST PATH — just the figure (seconds; from an existing merged table)
 --------------------------------------------------------------------
 #### cd /scratch/sr7729/CORAL_P
