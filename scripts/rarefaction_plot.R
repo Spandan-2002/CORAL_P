@@ -52,7 +52,7 @@ pbox <- ggplot(long, aes(compartment, value, fill = depth)) +
   scale_fill_manual(values = c("native (full)"="#4C72B0","rarefied (13M)"="#DD8452")) +
   scale_color_manual(values = c("native (full)"="#31517d","rarefied (13M)"="#a85c34")) +
   labs(title = "Alpha diversity is depth-robust — native depth vs read-level rarefaction to 13M reads (clean-10)",
-       subtitle = "Ranking shell > core > stool preserved in all three metrics; Shannon/InvSimpson barely move, Observed drops uniformly",
+       subtitle = "Each metric's compartment ranking is preserved under rarefaction (shell highest throughout; core~stool, n.s.); Shannon/InvSimpson barely move, Observed drops uniformly",
        x = NULL, y = "alpha diversity", fill = NULL, color = NULL) +
   theme_bw() + theme(legend.position = "top",
                      plot.subtitle = element_text(size = 9),
