@@ -94,6 +94,16 @@ BASE=$PWD $RS scripts/maaslin_da.R           # REAL MaAsLin2 (v1.18.0): all-13 +
 `Observed` alpha = **# detected species/SGBs** (MetaPhlAn presence), *not* rarefied count richness
 (MetaPhlAn emits no read counts to rarefy) — read it as detected taxa.
 
+**Depth-sensitivity (rarefaction) check.** Since MetaPhlAn has no count table to rarefy, depth-robustness
+is validated at the **read level** — the MetaPhlAn developer's recommended approach (N. Segata: *"rarefy
+the input metagenomes … use seqtk"*). `scripts/rarefaction_sensitivity.sbatch` subsamples each clean-10
+library's reads to a common **13M** depth (fixed seed) and re-profiles; `scripts/rarefaction_alpha.R`
+recomputes alpha and compares to native depth. Result (`results/rarefaction/RAREFACTION_RESULT.txt`):
+Shannon / InvSimpson essentially unchanged (per-sample Spearman ρ = 0.999; Friedman p = 0.025 in both),
+and Observed richness keeps its ranking (shell > core > stool) and significance (Friedman p = 0.045 native
+and rarefied) — the diversity findings are **biological, not sequencing-depth artifacts**. Refs: MetaPhlAn 4
+(Blanco-Míguez 2023, *Nat Biotechnol*); depth/richness (Liu 2022, *Genome*, PMID 35939836).
+
 ## Sample naming — control / core / stool / shell
 
 Library IDs are `<subject><arm>_<compartment>`:
