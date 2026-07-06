@@ -96,7 +96,8 @@ BASE=$PWD $RS scripts/maaslin_da.R           # REAL MaAsLin2 (v1.18.0): all-13 +
 
 **Depth-sensitivity (rarefaction) check.** Since MetaPhlAn has no count table to rarefy, depth-robustness
 is validated at the **read level** — the MetaPhlAn developer's recommended approach (N. Segata: *"rarefy
-the input metagenomes … use seqtk"*). `scripts/rarefaction_sensitivity.sbatch` applies **fixed-depth
+the input metagenomes … use seqtk"* — this repo uses **seqkit**, an equivalent subsampler).
+`scripts/rarefaction_sensitivity.sbatch` applies **fixed-depth
 subsampling** of each clean-10 library's reads to **13M** (fixed seed) and re-profiles;
 `scripts/rarefaction_alpha.R` recomputes alpha and compares to native depth. Result:
 Shannon / InvSimpson essentially unchanged (per-sample Spearman ρ = 0.999; Friedman p = 0.025 in both),
@@ -165,9 +166,11 @@ python scripts/build_manifest.py     # -> manifest.tsv, filelist.txt, asm_units.
 
 ## Not included
 
-Raw FASTQs, reference DBs, and pipeline outputs are **gitignored** (regenerated) — except the two
-figures and the phyloseq `.rds`, committed as ready-to-use artifacts. This repo is otherwise code
-only; the heavy downstream (assembly, MAGs, strain, function, virome, AMR/BGC) lives in parent CoralShot.
+Raw FASTQs, reference DBs, and pipeline outputs are **gitignored** (regenerated) — except these
+committed ready-to-use artifacts: the two figures, the phyloseq `.rds`, the two MaAsLin2
+`significant_results.tsv` tables, and the rarefaction result (`results/rarefaction/RAREFACTION_RESULT.txt`).
+This repo is otherwise code only; the heavy downstream (assembly, MAGs, strain, function, virome,
+AMR/BGC) lives in parent CoralShot.
 
 ## License
 

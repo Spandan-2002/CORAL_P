@@ -96,7 +96,7 @@ cat("\n========== 4. DIFFERENTIAL ABUNDANCE (real MaAsLin2 -- run in cs_stats) =
 cat("  /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/maaslin_da.R\n")
 cat("  Params (CoralShot's exact): fixed=type, random=subject, ref=stool, TSS/LOG/LM, min_prevalence=0.10.\n")
 cat("  Result (all-13, RAW MetaPhlAn): 1 significant = Streptococcus mitis (core, coef=3.467, q=0.00218)\n")
-cat("  -> reproduces CoralShot's maaslin_metaphlan_scrub (S. mitis, coef=3.465, q=0.00219) to 4 sig figs.\n")
+cat("  -> closely reproduces CoralShot's maaslin_metaphlan_scrub (coef 3.467 vs 3.465, q 0.00218 vs 0.00219); tiny difference = raw vs SCRuB input.\n")
 cat("     (raw vs SCRuB'd est-counts is negligible: MaAsLin2 TSS normalization re-closes both to proportions.)\n")
 cat("  Clean-10 (N=30) still finds S. mitis (core, q=0.026): same signal, weaker with fewer samples.\n")
 cat("\nDone.\n")

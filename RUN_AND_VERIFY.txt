@@ -72,7 +72,8 @@
 3b) CROSS-CHECK the relative abundance via phyloseq (R) -- reproduces our numbers EXACTLY
 -----------------------------------------------------------------------------------------
 # phyloseq is a CONTAINER, not a profiler: it reports the MetaPhlAn table you load.
-# Verified to match our genus relative abundance to 5e-9 (bit-identical) IF you
+# Verified to match our genus relative abundance to ~5e-9 (numerically identical; the residual is just
+# the 8-decimal output rounding in phyloseq_relabund.R, not a real difference) IF you
 #   (1) filter to ONE rank (genus = clade with |g__ and NOT |s__), and
 #   (2) close each sample to sum = 1.  Both are done inside the script below.
 #### BASE=/scratch/sr7729/CORAL_P /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/phyloseq_relabund.R
