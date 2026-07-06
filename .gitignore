@@ -1,10 +1,10 @@
 # --- raw sequencing data ---
-Shotgun/
+Shotgun
 *.fastq.gz
 *.fq.gz
 
 # --- reference DBs, outputs, intermediates (regenerated; large) ---
-db/
+db
 work/
 results/
 cache/
