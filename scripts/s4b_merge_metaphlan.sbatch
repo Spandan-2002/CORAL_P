@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH -p cs -c 4 --mem=16G -t 0:30:00 -J cs_mpamerge -o logs/%x_%j.out
 # Merge ALL per-sample MetaPhlAn profiles into results/04_mpa/merged_sgb.tsv
-# (the MetaPhlAn SGB relative-abundance table). Mirror of s6b_merge_bracken.sbatch.
+# (the MetaPhlAn SGB relative-abundance table).
 # Submit with: --dependency=afterok:<s4_array_jobid> so it runs after the MetaPhlAn array.
 set -euo pipefail
 source /scratch/sr7729/CORAL_P/env.sh
