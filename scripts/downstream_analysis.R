@@ -2,7 +2,7 @@
 # ============================================================================
 # Downstream ecological + statistical analysis off the CORAL_P phyloseq object,
 # reproducing CoralShot's clean-10 compartment analysis with phyloseq + vegan:
-#   1. alpha diversity (Observed / Shannon / inverse Simpson) + Friedman
+#   1. alpha diversity (Observed = # detected SGBs [NOT rarefied richness] / Shannon / inverse Simpson) + Friedman
 #   2. beta: Bray-Curtis per-participant distances + PCoA ordination plot
 #   3. PERMANOVA, restricted WITHIN participant (adonis2, how(blocks=))
 #   4. differential abundance -- REAL MaAsLin2 (scripts/maaslin_da.R, run in cs_stats)
@@ -10,7 +10,12 @@
 # Run: BASE=/scratch/sr7729/coralshot \
 #      /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/downstream_analysis.R
 # ============================================================================
-.libPaths(c("/scratch/sr7729/gut/coral_reef/R_libs", .libPaths()))
+# Prefer the conda env's OWN phyloseq (e.g. cs_stats, envs/cs_stats.yml); only fall back to the
+# Torch R_libs path (used by cs_profile) when phyloseq is not otherwise available -> portable off Torch.
+if (!requireNamespace("phyloseq", quietly = TRUE)) {
+  .rlib <- "/scratch/sr7729/gut/coral_reef/R_libs"
+  if (dir.exists(.rlib)) .libPaths(c(.rlib, .libPaths()))
+}
 suppressMessages({ library(phyloseq); library(vegan); library(ggplot2) })
 BASE  <- Sys.getenv("BASE", "/scratch/sr7729/CORAL_P")
 ps    <- readRDS(file.path(BASE, "results/phyloseq/coralp_ps.rds"))
@@ -42,6 +47,8 @@ med <- aggregate(cbind(Observed, Shannon, effShannon, InvSimpson) ~ compartment,
                  function(x) round(median(x), 3))
 print(med, row.names = FALSE)
 cat("  CoralShot ref: Core 163/3.314/12.998 | Shell 185/3.772/24.440 | Stool 130/3.250/13.527 (rich/Shannon/invSimpson)\n")
+cat("  NOTE: 'Observed' = # detected species/SGBs (MetaPhlAn presence), NOT rarefied count richness\n")
+cat("        (MetaPhlAn gives no read counts to rarefy) -- read it as detected taxa, not a richness estimator.\n")
 for (m in c("Shannon","Observed","InvSimpson")) {
   w  <- reshape(alp[,c("participant","compartment",m)], idvar="participant", timevar="compartment", direction="wide")
   ft <- friedman.test(as.matrix(w[,-1]))

@@ -9,7 +9,12 @@
 # Run: BASE=/scratch/sr7729/CORAL_P \
 #      /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/make_phyloseq.R
 # ============================================================================
-.libPaths(c("/scratch/sr7729/gut/coral_reef/R_libs", .libPaths()))
+# Prefer the conda env's OWN phyloseq (e.g. cs_stats, envs/cs_stats.yml); only fall back to the
+# Torch R_libs path (used by cs_profile) when phyloseq is not otherwise available -> portable off Torch.
+if (!requireNamespace("phyloseq", quietly = TRUE)) {
+  .rlib <- "/scratch/sr7729/gut/coral_reef/R_libs"
+  if (dir.exists(.rlib)) .libPaths(c(.rlib, .libPaths()))
+}
 suppressMessages({ library(phyloseq); library(ggplot2) })
 BASE  <- Sys.getenv("BASE", "/scratch/sr7729/CORAL_P")
 mpa   <- read.delim(file.path(BASE, "results/04_mpa/merged_sgb.tsv"), skip = 1, check.names = FALSE)

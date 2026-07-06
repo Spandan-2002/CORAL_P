@@ -1,0 +1,14 @@
+name: cs_stats
+channels: [conda-forge, bioconda]
+# R stats layer for the phyloseq cross-check + differential abundance:
+#   make_phyloseq.R · phyloseq_relabund.R · downstream_analysis.R · maaslin_da.R
+# Minimal subset of the parent CoralShot cs_stats env -- only the packages these
+# four scripts import. One env runs all four (no site-specific R lib path needed).
+# Versions verified live on Torch: phyloseq 1.46.0, vegan 2.7.1, ggplot2 3.5.2,
+# Maaslin2 1.18.0, R 4.3.3.  (conda env export after build to lock exact pins.)
+dependencies:
+  - r-base                  # unpinned so conda harmonizes R with current bioconductor builds
+  - bioconductor-phyloseq   # otu/tax/sample_data container, tax_glom, ordinate, plot_bar
+  - r-vegan                 # diversity(), specnumber(), adonis2(), how(blocks=)
+  - r-ggplot2               # composition + PCoA figures
+  - bioconductor-maaslin2   # differential abundance (maaslin_da.R)

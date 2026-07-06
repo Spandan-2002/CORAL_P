@@ -6,8 +6,10 @@ core/shell sampling device (Ramadi Lab, NYU). Minimal, reproducible pipeline:
 composition** (drawn both with matplotlib and with phyloseq).
 
 > 📋 **Copy-paste runbook:** [`RUN_AND_VERIFY.txt`](RUN_AND_VERIFY.txt) — every command, grouped and ready.
-> Extracted from the parent **CoralShot** project — this repo is the read→relative-abundance subset only
-> (no assembly/MAGs, strain, HUMAnN, virome, or stats).
+> Extracted from the parent **CoralShot** project — the read→relative-abundance subset **plus a
+> phyloseq/vegan verification layer** (alpha / beta / participant-blocked PERMANOVA + MaAsLin2
+> differential abundance). The heavy downstream (assembly/MAGs, strain, HUMAnN, virome, AMR/BGC)
+> stays in CoralShot.
 
 ---
 
@@ -65,6 +67,33 @@ BASE=$PWD /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/phyloseq_rel
 Load the object in R: `ps <- readRDS("results/phyloseq/coralp_ps.rds")` — then `tax_glom(ps,"Genus")`
 relative abundance equals the `|g__` numbers exactly (Bifidobacterium P01M_C = 0.08849).
 
+## Statistics — phyloseq + vegan verification layer
+
+An independent phyloseq + vegan layer reproduces the CoralShot compartment analysis and prints each
+number next to its CoralShot reference. **Environment:** create `cs_stats` from
+[`envs/cs_stats.yml`](envs/cs_stats.yml) — one env with phyloseq, vegan, ggplot2, and MaAsLin2 runs
+**all four** R scripts. No site-specific R-library path is required: the scripts prepend the Torch
+`R_libs` path only if it exists, otherwise they use the conda env's own libraries.
+
+```bash
+conda env create -p /scratch/sr7729/conda_envs/cs_stats -f envs/cs_stats.yml   # if missing
+RS=/scratch/sr7729/conda_envs/cs_stats/bin/Rscript
+BASE=$PWD $RS scripts/make_phyloseq.R        # -> results/phyloseq/coralp_ps.rds (817 sp × 53) + figures/stacked_composition_phyloseq.png
+BASE=$PWD $RS scripts/phyloseq_relabund.R    # genus relabund cross-check (sample sums = 1)
+BASE=$PWD $RS scripts/downstream_analysis.R  # alpha (Friedman) + Bray-Curtis + participant-blocked PERMANOVA + PCoA -> figures/pcoa_braycurtis_phyloseq.png
+BASE=$PWD $RS scripts/maaslin_da.R           # REAL MaAsLin2 (v1.18.0): all-13 + clean-10
+```
+
+| Result (clean-10 unless noted) | Value |
+|---|---|
+| alpha Shannon — core / shell / stool | 3.31 / 3.77 / 3.25 (Friedman p ≈ 0.02–0.05) |
+| Bray-Curtis medians — core-stool / core-shell / shell-stool | 0.360 / 0.301 / 0.334 |
+| PERMANOVA omnibus (adonis2, blocked within participant) | R² 0.016, F 0.22, p ≈ 0.21 |
+| Differential abundance (MaAsLin2) | *Streptococcus mitis* ↑ core — all-13 q = 0.0022; clean-10 q = 0.026 |
+
+`Observed` alpha = **# detected species/SGBs** (MetaPhlAn presence), *not* rarefied count richness
+(MetaPhlAn emits no read counts to rarefy) — read it as detected taxa.
+
 ## Sample naming — control / core / stool / shell
 
 Library IDs are `<subject><arm>_<compartment>`:
@@ -101,8 +130,8 @@ python scripts/build_manifest.py     # -> manifest.tsv, filelist.txt, asm_units.
 # then run the s1->s4->s4b chain + figures as in "Run it" above.
 ```
 
-> `submit.sh` still lists parent-project stages (`s5`, `s6`, `s7`, …) — **only `s1`–`s4` apply here**;
-> the other cases reference scripts not shipped in this subset.
+> `submit.sh` dispatches only the stages shipped here: **`s0host s1 s2 s3 s4 s4b`** (any other name
+> is rejected). The phyloseq/stats layer is run directly, not through the dispatcher.
 
 ## Requirements
 
@@ -122,7 +151,7 @@ python scripts/build_manifest.py     # -> manifest.tsv, filelist.txt, asm_units.
 
 Raw FASTQs, reference DBs, and pipeline outputs are **gitignored** (regenerated) — except the two
 figures and the phyloseq `.rds`, committed as ready-to-use artifacts. This repo is otherwise code
-only; downstream analysis (assembly, MAGs, strain, function, virome, stats) lives in parent CoralShot.
+only; the heavy downstream (assembly, MAGs, strain, function, virome, AMR/BGC) lives in parent CoralShot.
 
 ## License
 
