@@ -102,21 +102,15 @@ prich <- ggplot(rich, aes(depth, richness, group = sid)) +
 ggsave(file.path(BASE, "figures/rarefaction_richness.png"), prich, width = 10, height = 4.2, dpi = 150)
 cat("wrote figures/rarefaction_richness.png\n")
 
-# ---- richness BAR plot: median (IQR whiskers) by compartment, native vs rarefied ----
-agg <- do.call(rbind, lapply(split(rich, list(rich$compartment, rich$depth), drop = TRUE), function(d)
-  data.frame(compartment = d$compartment[1], depth = d$depth[1],
-             med = median(d$richness),
-             lo  = as.numeric(quantile(d$richness, 0.25)),
-             hi  = as.numeric(quantile(d$richness, 0.75)))))
-agg$compartment <- factor(agg$compartment, levels = c("core","shell","stool"))
-pbar <- ggplot(agg, aes(compartment, med, fill = depth)) +
-  geom_col(position = position_dodge(0.8), width = 0.72, alpha = 0.9, color = "grey30", linewidth = 0.2) +
-  geom_errorbar(aes(ymin = lo, ymax = hi), position = position_dodge(0.8), width = 0.2, color = "grey30") +
-  geom_text(aes(label = round(med)), position = position_dodge(0.8), vjust = -0.6, size = 3.4, fontface = "bold") +
+# ---- richness BOXPLOT: Observed by compartment, native vs rarefied ----
+pbox_rich <- ggplot(rich, aes(compartment, richness, fill = depth)) +
+  geom_boxplot(outlier.shape = NA, position = position_dodge(0.8), width = 0.7, alpha = 0.6) +
+  geom_point(aes(color = depth), position = position_dodge(0.8), size = 1.4) +
   scale_fill_manual(values = c("native (full)"="#4C72B0","rarefied (13M)"="#DD8452")) +
+  scale_color_manual(values = c("native (full)"="#31517d","rarefied (13M)"="#a85c34")) +
   labs(title = "Observed species richness by compartment — native depth vs rarefied to 13M",
-       subtitle = "Bars = median across the 10 clean-10 libraries; whiskers = IQR. Richness drops ~uniformly under rarefaction; shell highest, core~stool (n.s.)",
-       x = NULL, y = "observed species / SGBs (median)", fill = NULL) +
+       subtitle = "Boxplots across the 10 clean-10 libraries (points = libraries); richness drops ~uniformly under rarefaction; shell highest, core~stool (n.s.)",
+       x = NULL, y = "observed species / SGBs", fill = NULL, color = NULL) +
   theme_bw() + theme(legend.position = "top", plot.subtitle = element_text(size = 8.5))
-ggsave(file.path(BASE, "figures/rarefaction_richness_bar.png"), pbar, width = 8, height = 4.6, dpi = 150)
-cat("wrote figures/rarefaction_richness_bar.png\n")
+ggsave(file.path(BASE, "figures/rarefaction_richness_box.png"), pbox_rich, width = 8, height = 4.6, dpi = 150)
+cat("wrote figures/rarefaction_richness_box.png\n")
