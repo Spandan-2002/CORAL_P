@@ -120,6 +120,9 @@
 #    committed result: results/rarefaction/RAREFACTION_RESULT.txt  (merged_rare13M.tsv is regenerated, gitignored)
 #    expect: Shannon/InvSimpson ~unchanged (rho=0.999); Observed keeps ranking + Friedman p=0.045
 #            -> alpha diversity is not explained by sequencing depth.
+# plots (native vs rarefied): boxplots by compartment + per-sample scatter
+#### BASE=/scratch/sr7729/CORAL_P /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/rarefaction_plot.R
+# -> figures/rarefaction_alpha_box.png + figures/rarefaction_alpha_scatter.png (both committed)
 
 
 FAST PATH — just the figure (seconds; from an existing merged table)
