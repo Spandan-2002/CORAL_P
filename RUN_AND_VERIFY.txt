@@ -123,7 +123,7 @@
 # plots (native vs rarefied): boxplots by compartment + per-sample scatter
 #### BASE=/scratch/sr7729/CORAL_P /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/rarefaction_plot.R
 # -> figures/rarefaction_alpha_box.png + figures/rarefaction_alpha_scatter.png
-#    + figures/rarefaction_richness.png (dedicated Observed-richness paired native->rarefied)  (all committed)
+#    + figures/rarefaction_richness.png (paired) + figures/rarefaction_richness_bar.png (grouped bars)  (all committed)
 
 
 FAST PATH — just the figure (seconds; from an existing merged table)
