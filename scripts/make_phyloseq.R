@@ -7,7 +7,7 @@
 #   figure : tax_glom to Genus -> relative abundance -> plot_bar (top-14 + Other)
 #            -> figures/stacked_composition_phyloseq.png
 # Run: BASE=/scratch/sr7729/CORAL_P \
-#      /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/make_phyloseq.R
+#      /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/make_phyloseq.R
 # ============================================================================
 # Prefer the conda env's OWN phyloseq (e.g. cs_stats, envs/cs_stats.yml); only fall back to the
 # Torch R_libs path (used by cs_profile) when phyloseq is not otherwise available -> portable off Torch.

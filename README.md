@@ -34,13 +34,13 @@ sbatch -A "$ACCT" --qos="$CPU_QOS" --dependency=afterok:$J4 scripts/s4b_merge_me
 squeue -u $USER
 
 # figures (after the merge finishes) -> results/04_mpa/merged_sgb.tsv must exist
-conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py         # matplotlib
-BASE=$PWD /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/make_phyloseq.R                # phyloseq object + figure
+conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py            # matplotlib (cs_viz)
+BASE=$PWD /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/make_phyloseq.R                    # phyloseq object + figure (cs_stats)
 ```
 
-The `cs_profile` and `cs_viz` conda envs already exist on Torch. Create them from `envs/*.yml` if missing
-(see *Requirements*). **Already have `merged_sgb.tsv`?** Skip the pipeline — just run the two figure
-commands (seconds).
+The `cs_profile` (MetaPhlAn), `cs_viz` (matplotlib figure), and `cs_stats` (the R/phyloseq layer) conda
+envs already exist on Torch. Create any that are missing from `envs/*.yml` (see *Requirements*).
+**Already have `merged_sgb.tsv`?** Skip the pipeline — just run the two figure commands (seconds).
 
 ---
 
@@ -61,7 +61,7 @@ not `|s__`) and **close each sample to sum = 1**. `phyloseq_relabund.R` does thi
 plotted numbers to **5×10⁻⁹** (verified):
 
 ```bash
-BASE=$PWD /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/phyloseq_relabund.R
+BASE=$PWD /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/phyloseq_relabund.R
 #   -> results/04_mpa/phyloseq_genus_relabund.tsv   (should diff to ~0 against ours)
 ```
 Load the object in R: `ps <- readRDS("results/phyloseq/coralp_ps.rds")` — then `tax_glom(ps,"Genus")`
@@ -109,7 +109,7 @@ Full sheet with subject/arm/i7/i5/read-counts: `sample_manifest.tsv`.
 raw FASTQ  (Shotgun/)
   s1_qc            FastQC on raw reads
   s2_fastp         adapter / quality trim (fastp)
-  s3_host          host-read removal (bowtie2 vs T2T-CHM13 + GRCh38)
+  s3_host          host/decoy removal (bowtie2 vs GRCh38 + T2T-CHM13 + PhiX)
   s4_metaphlan     MetaPhlAn 4 per sample
   s4b_merge        merge_metaphlan_tables.py -> results/04_mpa/merged_sgb.tsv
   figures          make_stacked_composition.py (matplotlib) + make_phyloseq.R (phyloseq)
@@ -120,8 +120,9 @@ Full setup when the DBs are **not** already staged:
 ```bash
 source env.sh
 mkdir -p logs
-conda env create -p /scratch/sr7729/conda_envs/cs_profile -f envs/cs_profile.yml   # MetaPhlAn (+ R/phyloseq on Torch)
+conda env create -p /scratch/sr7729/conda_envs/cs_profile -f envs/cs_profile.yml   # MetaPhlAn
 conda env create -p /scratch/sr7729/conda_envs/cs_viz     -f envs/cs_viz.yml       # matplotlib figure
+conda env create -p /scratch/sr7729/conda_envs/cs_stats   -f envs/cs_stats.yml     # R: phyloseq + vegan + MaAsLin2
 bash   scripts/stage_dbs.sh 2>&1 | tee logs/stage_dbs.log                          # host + MetaPhlAn DBs
 sbatch -A "$ACCT" --qos="$CPU_QOS" scripts/s0_build_host.sbatch                    # build bowtie2 host index
 # put FASTQs in Shotgun/ (named <SID>_S##_L002_R{1,2}_001.fastq.gz); manifest.tsv + filelist.txt are committed.
@@ -141,11 +142,13 @@ python scripts/build_manifest.py     # -> manifest.tsv, filelist.txt, asm_units.
 - **conda `cs_profile`** (`envs/cs_profile.yml`): MetaPhlAn 4 (+ seqkit). QC/host tools (FastQC, fastp,
   bowtie2, samtools) come from the Torch `module load bioinformatics/20260224` bundle.
 - **conda `cs_viz`** (`envs/cs_viz.yml`): pandas + numpy + matplotlib (for `make_stacked_composition.py`).
-- **R + phyloseq** (for `make_phyloseq.R` / `phyloseq_relabund.R`): on Torch these run via
-  `cs_profile`'s `Rscript` with phyloseq on the `coral_reef/R_libs` path (set inside the scripts);
-  elsewhere install `phyloseq` + `ggplot2`.
-- **Databases (not in git):** MetaPhlAn `mpa_vJun23_CHOCOPhlAnSGB_202403`; bowtie2 host index
-  (T2T-CHM13 + GRCh38). Staged by `stage_dbs.sh` / `s0_build_host` (or reused via the symlinks above).
+- **conda `cs_stats`** (`envs/cs_stats.yml`): the R/phyloseq layer — phyloseq + vegan + ggplot2 +
+  MaAsLin2. Runs all four R scripts (`make_phyloseq.R`, `phyloseq_relabund.R`,
+  `downstream_analysis.R`, `maaslin_da.R`). No site-specific R-library path is required: the scripts
+  prepend the Torch `coral_reef/R_libs` path only if phyloseq is not otherwise available.
+- **Databases (not in git):** MetaPhlAn `mpa_vJun23_CHOCOPhlAnSGB_202403`; bowtie2 host+decoy index
+  (GRCh38 + T2T-CHM13 + PhiX/NC_001422, built as `host_decoy`). Staged by `stage_dbs.sh` /
+  `s0_build_host` (or reused via the symlinks above).
 
 ## Not included
 

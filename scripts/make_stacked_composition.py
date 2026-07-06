@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Stacked genus relative-abundance composition. Controls in a SEPARATE block on the LEFT (each control
 shown individually, cores then shells), a DASHED divider, then participants grouped STOOL | CORE | SHELL.
-Run: codonfm-jepa python scripts/make_stacked_composition.py"""
-import pandas as pd, numpy as np, re
+Run: conda run -p /scratch/sr7729/conda_envs/cs_viz python scripts/make_stacked_composition.py"""
+import os, pandas as pd, numpy as np, re
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
-B="/scratch/sr7729/CORAL_P"
+B=os.environ.get("BASE","/scratch/sr7729/CORAL_P")   # portable: honor $BASE, else default to this repo
 df=pd.read_csv(f"{B}/results/04_mpa/merged_sgb.tsv",sep="\t",skiprows=1)
 df.columns=[c.replace(".profile","") for c in df.columns]; tc=df.columns[0]; cn=df[tc].astype(str)
 g=df[cn.str.contains(r"\|g__",na=False)&~cn.str.contains(r"\|s__",na=False)].copy()

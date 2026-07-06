@@ -7,6 +7,7 @@ source /scratch/sr7729/CORAL_P/env.sh
 conda activate /scratch/sr7729/conda_envs/cs_profile
 IFS=$'\t' read -r SID REST < <(sed -n "$((SLURM_ARRAY_TASK_ID+1))p" "$BASE/manifest.tsv")
 [ -z "${SID:-}" ] && { echo "FATAL empty row"; exit 1; }
+mkdir -p "$BASE/results/04_mpa"          # ensure the output dir exists on a fresh run
 zcat "$BASE/work/clean/${SID}_R1.fq.gz" "$BASE/work/clean/${SID}_R2.fq.gz" > "$TMPDIR/${SID}.fq"
 if [ -s "$BASE/work/clean/${SID}_U.fq.gz" ]; then zcat "$BASE/work/clean/${SID}_U.fq.gz" >> "$TMPDIR/${SID}.fq"; fi
 metaphlan "$TMPDIR/${SID}.fq" --input_type fastq --nproc 24 \

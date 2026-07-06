@@ -7,8 +7,8 @@
 #   3. PERMANOVA, restricted WITHIN participant (adonis2, how(blocks=))
 #   4. differential abundance -- REAL MaAsLin2 (scripts/maaslin_da.R, run in cs_stats)
 # Each result is printed next to CoralShot's reference number for verification.
-# Run: BASE=/scratch/sr7729/coralshot \
-#      /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/downstream_analysis.R
+# Run: BASE=/scratch/sr7729/CORAL_P \
+#      /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/downstream_analysis.R
 # ============================================================================
 # Prefer the conda env's OWN phyloseq (e.g. cs_stats, envs/cs_stats.yml); only fall back to the
 # Torch R_libs path (used by cs_profile) when phyloseq is not otherwise available -> portable off Torch.
