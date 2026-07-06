@@ -51,7 +51,7 @@ for gname,cx in centers.items():
 ax.set_ylim(-17,100); ax.set_xlim(-1,xi-1.5); ax.set_xticks([])
 ax.set_ylabel("genus relative abundance (%)")
 ax.set_title("Stacked genus composition — controls (left, individual) vs participants (STOOL | CORE | SHELL)\n"
-             "controls resemble a shared participant-gut blend (consistent with cross-talk), not a reagent/kit-ome profile",
+             "controls show gut-like community profiles (dominated by gut genera)",
              fontsize=13,fontweight="bold")
 ax.legend(handles=[Patch(fc=COL[t],label=t) for t in top]+[Patch(fc="#d9d9d9",label="Other")],
           fontsize=9,ncol=8,loc="upper center",bbox_to_anchor=(0.5,-0.05),frameon=False,title="genus (top 14)")
