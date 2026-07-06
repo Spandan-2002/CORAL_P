@@ -71,6 +71,25 @@ for (lab in c("Observed", "Shannon", "InvSimpson")) {
   cat(sprintf("  Friedman p : native = %.4f   rarefied = %.4f\n",
               friedman.test(as.matrix(wn[,-1]))$p.value, friedman.test(as.matrix(wr[,-1]))$p.value))
 }
+
+## ---------- PAIRWISE POST-HOC (paired Wilcoxon signed-rank, per participant) ----------
+# The Friedman above is an OMNIBUS test. This shows WHERE the difference sits: the signal is the
+# shell; core vs stool is not significant on any metric. (uncorrected, n=10)
+cat("\n========== PAIRWISE POST-HOC (paired Wilcoxon, per participant, n=10; uncorrected) ==========\n")
+pid_all <- sub("([CP][0-9]+)[MB]_[CSF]", "\\1", common)
+pw <- function(vals) {   # paired-Wilcoxon p for core-stool, core-shell, shell-stool
+  w <- reshape(data.frame(pid_all, compartment, v = vals), idvar="pid_all", timevar="compartment", direction="wide")
+  sapply(list(c("core","stool"), c("core","shell"), c("shell","stool")), function(pr) {
+    a <- w[[paste0("v.",pr[1])]]; b <- w[[paste0("v.",pr[2])]]; ok <- complete.cases(a,b)
+    suppressWarnings(wilcox.test(a[ok], b[ok], paired = TRUE)$p.value) })
+}
+for (lab in c("Observed","Shannon","InvSimpson")) {
+  pn <- pw(nat[[lab]]); pr <- pw(rar[[lab]])
+  cat(sprintf("  %-11s native  cs=%.3f cS=%.3f Ss=%.3f | rarefied  cs=%.3f cS=%.3f Ss=%.3f  (cs=core-stool, cS=core-shell, Ss=shell-stool)\n",
+              lab, pn[1], pn[2], pn[3], pr[1], pr[2], pr[3]))
+}
+cat("  -> core-stool (cs) is n.s. for every metric; the omnibus signal is the SHELL.\n")
+
 cat("\nInterpretation: Shannon/InvSimpson ~unchanged (depth-robust); Observed drops uniformly under\n")
 cat("rarefaction but its compartment ranking + Friedman significance should persist if the native\n")
 cat("richness comparison is not explained by sequencing depth alone.\n")

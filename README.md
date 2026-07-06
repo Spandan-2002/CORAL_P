@@ -101,8 +101,9 @@ the input metagenomes … use seqtk"* — this repo uses **seqkit**, an equivale
 subsampling** of each clean-10 library's reads to **13M** (fixed seed) and re-profiles;
 `scripts/rarefaction_alpha.R` recomputes alpha and compares to native depth. Result:
 Shannon / InvSimpson essentially unchanged (per-sample Spearman ρ = 0.999; Friedman p = 0.025 in both),
-and Observed richness keeps its median ranking (shell highest; **core~stool is n.s.** — paired Wilcoxon
-core-stool p≈0.08–1.0 depending on metric) and its **omnibus** significance (Friedman p = 0.045 native and
+and Observed richness keeps its median ranking (shell highest; **core~stool is n.s.** — paired-Wilcoxon
+post-hoc computed by `rarefaction_alpha.R`, in `RAREFACTION_RESULT.txt`: core-stool p = 0.08–1.0, while
+core-shell and shell-stool are significant, p ≤ 0.05) and its **omnibus** significance (Friedman p = 0.045 native and
 rarefied) — so the diversity findings are **not explained by sequencing depth** (they persist at equal
 depth; this supports, but does not by itself prove, a biological rather than technical origin). The one
 compartment that stands out is the **shell**; core and stool are statistically indistinguishable. The result
@@ -173,7 +174,8 @@ python scripts/build_manifest.py     # -> manifest.tsv, filelist.txt, asm_units.
 ## Not included
 
 Raw FASTQs, reference DBs, and pipeline outputs are **gitignored** (regenerated) — except these
-committed ready-to-use artifacts: the two figures, the phyloseq `.rds`, the two MaAsLin2
+committed ready-to-use artifacts: **6 figures** (phyloseq composition + PCoA, and the four rarefaction
+plots: alpha box, alpha scatter, richness paired, richness box), the phyloseq `.rds`, the two MaAsLin2
 `significant_results.tsv` tables, and the rarefaction result (`results/rarefaction/RAREFACTION_RESULT.txt`).
 This repo is otherwise code only; the heavy downstream (assembly, MAGs, strain, function, virome,
 AMR/BGC) lives in parent CoralShot.
