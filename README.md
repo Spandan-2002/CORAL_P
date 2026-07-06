@@ -101,9 +101,11 @@ the input metagenomes … use seqtk"* — this repo uses **seqkit**, an equivale
 subsampling** of each clean-10 library's reads to **13M** (fixed seed) and re-profiles;
 `scripts/rarefaction_alpha.R` recomputes alpha and compares to native depth. Result:
 Shannon / InvSimpson essentially unchanged (per-sample Spearman ρ = 0.999; Friedman p = 0.025 in both),
-and Observed richness keeps its ranking (shell > core > stool) and significance (Friedman p = 0.045 native
-and rarefied) — so the diversity findings are **not explained by sequencing depth** (they persist at equal
-depth; this supports, but does not by itself prove, a biological rather than technical origin). The result
+and Observed richness keeps its median ranking (shell highest; **core~stool is n.s.** — paired Wilcoxon
+core-stool p≈0.08–1.0 depending on metric) and its **omnibus** significance (Friedman p = 0.045 native and
+rarefied) — so the diversity findings are **not explained by sequencing depth** (they persist at equal
+depth; this supports, but does not by itself prove, a biological rather than technical origin). The one
+compartment that stands out is the **shell**; core and stool are statistically indistinguishable. The result
 text is committed (`results/rarefaction/RAREFACTION_RESULT.txt`), as are the plots from
 `scripts/rarefaction_plot.R` (`figures/rarefaction_alpha_box.png` = per-compartment boxplots native
 vs rarefied; `figures/rarefaction_alpha_scatter.png` = per-sample native-vs-rarefied scatter with ρ;
