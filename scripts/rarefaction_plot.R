@@ -80,3 +80,24 @@ psc <- ggplot(sc, aes(native, rarefied, color = compartment)) +
   theme_bw() + theme(legend.position = "top", strip.text = element_text(face = "bold"))
 ggsave(file.path(BASE, "figures/rarefaction_alpha_scatter.png"), psc, width = 11, height = 4.5, dpi = 150)
 cat("wrote figures/rarefaction_alpha_scatter.png\n")
+
+# ---- dedicated Observed-RICHNESS view: paired native -> rarefied per library --
+rich <- rbind(
+  data.frame(sid = common, compartment = comp, depth = "native (full)",  richness = nat$Observed),
+  data.frame(sid = common, compartment = comp, depth = "rarefied (13M)", richness = rar$Observed))
+rich$depth <- factor(rich$depth, levels = c("native (full)","rarefied (13M)"))
+medlab <- aggregate(richness ~ compartment + depth, rich, function(v) round(median(v)))
+prich <- ggplot(rich, aes(depth, richness, group = sid)) +
+  geom_line(color = "grey72", linewidth = 0.4) +
+  geom_point(aes(color = compartment), size = 2) +
+  geom_text(data = medlab, aes(depth, richness, label = richness), inherit.aes = FALSE,
+            vjust = -0.9, size = 3, fontface = "bold") +
+  facet_wrap(~ compartment) +
+  scale_color_manual(values = c(core="#55A868", shell="#C44E52", stool="#8172B3")) +
+  labs(title = "Observed species richness — native depth vs rarefied to 13M (each line = one library; bold = median)",
+       subtitle = "Richness falls when depth is equalized (expected: fewer reads detect fewer rare taxa), but the drop is ~uniform so the compartment ordering is preserved (Friedman p=0.045 native & rarefied; core~stool n.s.)",
+       x = NULL, y = "observed species / SGBs", color = NULL) +
+  theme_bw() + theme(legend.position = "none", plot.subtitle = element_text(size = 8),
+                     strip.text = element_text(face = "bold"))
+ggsave(file.path(BASE, "figures/rarefaction_richness.png"), prich, width = 10, height = 4.2, dpi = 150)
+cat("wrote figures/rarefaction_richness.png\n")
