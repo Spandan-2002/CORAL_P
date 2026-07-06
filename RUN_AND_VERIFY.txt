@@ -105,6 +105,22 @@
 # NOTE: 'Observed' alpha = # detected species/SGBs (MetaPhlAn presence), NOT rarefied count richness.
 
 
+3d) RAREFACTION SENSITIVITY (is the alpha-diversity result depth-robust?)
+------------------------------------------------------------------------
+# Fixed-depth subsampling of each clean-10 library's reads to a COMMON 13M depth, then re-profile and
+# recompute alpha (read-level rarefaction = the MetaPhlAn dev's recommended method; MetaPhlAn has no
+# count table to rarefy). Needs work/clean/ reads + the MetaPhlAn DB (see setup above).
+#### sbatch -A "$ACCT" --qos="$CPU_QOS" scripts/rarefaction_sensitivity.sbatch   # array 1-30; writes results/rarefaction/*.profile.tsv
+# wait for the array to finish (squeue -u $USER), then MERGE the rarefied profiles:
+#### conda run -p /scratch/sr7729/conda_envs/cs_profile merge_metaphlan_tables.py results/rarefaction/*.profile.tsv > results/rarefaction/merged_rare13M.tsv
+# then COMPARE native vs rarefied alpha:
+#### BASE=/scratch/sr7729/CORAL_P /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/rarefaction_alpha.R
+# -> per-compartment medians + per-sample Spearman + Friedman, native vs rarefied
+#    committed result: results/rarefaction/RAREFACTION_RESULT.txt  (merged_rare13M.tsv is regenerated, gitignored)
+#    expect: Shannon/InvSimpson ~unchanged (rho=0.999); Observed keeps ranking + Friedman p=0.045
+#            -> alpha diversity is not explained by sequencing depth.
+
+
 FAST PATH — just the figure (seconds; from an existing merged table)
 --------------------------------------------------------------------
 #### cd /scratch/sr7729/CORAL_P

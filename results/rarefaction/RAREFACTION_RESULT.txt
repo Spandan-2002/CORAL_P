@@ -1,9 +1,11 @@
 READ-LEVEL RAREFACTION SENSITIVITY CHECK — alpha diversity (CORAL_P clean-10)
 ============================================================================
 Design : host-removed reads (R1+R2+U) of each of the 30 clean-10 libraries were
-         subsampled to a COMMON 13,000,000 reads (seqkit, fixed seed 42, exact N),
-         then re-profiled with MetaPhlAn 4 (same DB/params as s4). Alpha metrics
-         recomputed on the rarefied profiles and compared to native depth.
+         subsampled to a COMMON 13,000,000 reads/library (seqkit '-p' Bernoulli
+         subsampling, fixed seed 42, then truncated to 13M -> equal depth; a
+         fixed-depth subsample, not a uniform exact-size SRS), then re-profiled
+         with MetaPhlAn 4 (same DB/params as s4). Alpha metrics recomputed on the
+         rarefied profiles and compared to native depth.
 Basis  : rarefy INPUT reads, not the profile table (N. Segata, MetaPhlAn dev,
          metaphlan-users forum); rarefaction matters mainly for richness
          (Liu et al. 2022, Genome, PMID 35939836); MetaPhlAn -> relative abundance
@@ -38,14 +40,16 @@ compared 30 clean-10 samples (native vs rarefied to 13M reads)
 
 Interpretation: Shannon/InvSimpson ~unchanged (depth-robust); Observed drops uniformly under
 rarefaction but its compartment ranking + Friedman significance should persist if the native
-richness comparison was not merely a sequencing-depth artifact.
+richness comparison is not explained by sequencing depth alone.
 
 CONCLUSION
 ----------
-The alpha-diversity results are NOT sequencing-depth artifacts. Shannon and
-inverse Simpson are essentially unchanged under equal-depth rarefaction
+The alpha-diversity results are NOT explained by sequencing depth. Shannon and
+inverse Simpson are essentially unchanged under equal-depth subsampling
 (per-sample Spearman rho = 0.999; identical Friedman p = 0.025), confirming the
-relative-abundance primary analysis. Observed richness drops uniformly with fewer
-reads (as expected) but retains its compartment ranking (shell > core > stool),
-per-sample rank (rho = 0.956), and significance (Friedman p = 0.045 in both) ->
-the shell's higher diversity is biological, not a depth effect.
+relative-abundance primary analysis is depth-robust. Observed richness drops
+uniformly with fewer reads (as expected) but retains its compartment ranking
+(shell > core > stool), per-sample rank (rho = 0.956), and significance
+(Friedman p = 0.045 in both). So the shell's higher diversity persists at equal
+depth -- this supports, but does not by itself prove, a biological (rather than
+technical) origin.

@@ -73,4 +73,4 @@ for (lab in c("Observed", "Shannon", "InvSimpson")) {
 }
 cat("\nInterpretation: Shannon/InvSimpson ~unchanged (depth-robust); Observed drops uniformly under\n")
 cat("rarefaction but its compartment ranking + Friedman significance should persist if the native\n")
-cat("richness comparison was not merely a sequencing-depth artifact.\n")
+cat("richness comparison is not explained by sequencing depth alone.\n")

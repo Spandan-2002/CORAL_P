@@ -24,9 +24,11 @@ zcat "$BASE/work/clean/${SID}_R1.fq.gz" "$BASE/work/clean/${SID}_R2.fq.gz" > "$c
 [ -s "$BASE/work/clean/${SID}_U.fq.gz" ] && zcat "$BASE/work/clean/${SID}_U.fq.gz" >> "$comb"
 total=$(( $(wc -l < "$comb") / 4 ))
 [ "$total" -ge "$N" ] || { echo "FATAL $SID total=$total < N=$N (raise floor)"; exit 1; }
-# Rarefy to EXACTLY N reads, fixed seed. Use '-p' (proportion) which STREAMS at low memory;
-# '-n' loads ALL reads into RAM and OOMs on deep libraries. Oversample to ~1.05N in a FILE, then take
-# the first N from that file (file input -> seqkit head exits cleanly; no pipe -> no SIGPIPE).
+# Fixed-depth subsampling to N reads per library (fixed seed). seqkit '-p' does Bernoulli subsampling
+# (STREAMS, low memory; '-n' loads ALL reads into RAM and OOMs on deep libraries); oversample to
+# ~1.05N in a FILE, then truncate to the first N. Every library ends at EXACTLY N reads = equal depth.
+# (This is a fixed-depth subsample, not a uniform exact-size SRS, but is adequate for depth equalization.)
+# File input -> seqkit head exits cleanly; no pipe -> no SIGPIPE.
 p=$(awk -v n=$N -v t=$total 'BEGIN{v=(n*1.05)/t; if(v>1)v=1; printf "%.6f", v}')
 "$SK" sample -s $SEED -p "$p" "$comb" -o "$TMPDIR/${SID}.over.fq"
 over=$(( $(wc -l < "$TMPDIR/${SID}.over.fq") / 4 ))
