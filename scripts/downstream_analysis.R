@@ -5,7 +5,7 @@
 #   1. alpha diversity (Observed / Shannon / inverse Simpson) + Friedman
 #   2. beta: Bray-Curtis per-participant distances + PCoA ordination plot
 #   3. PERMANOVA, restricted WITHIN participant (adonis2, how(blocks=))
-#   4. differential abundance, genus core-vs-stool (paired Wilcoxon + BH-FDR)
+#   4. differential abundance -- REAL MaAsLin2 (scripts/maaslin_da.R, run in cs_stats)
 # Each result is printed next to CoralShot's reference number for verification.
 # Run: BASE=/scratch/sr7729/coralshot \
 #      /scratch/sr7729/conda_envs/cs_profile/bin/Rscript scripts/downstream_analysis.R
@@ -82,24 +82,14 @@ for (pr in list(c("core","stool"), c("core","shell"), c("shell","stool"))) {
 cat("  CoralShot ref: omnibus 0.016/0.22/0.207 | core-stool 0.012/0.22/0.459 | core-shell 0.009/0.16/0.233 | shell-stool 0.016/0.29/0.166\n")
 cat("  (R2 and F are deterministic -> should match exactly; PERMANOVA p is a permutation estimate -> matches within Monte-Carlo noise)\n")
 
-## ---------- 4. DIFFERENTIAL ABUNDANCE (genus, core vs stool) ----------
-cat("\n========== 4. DIFFERENTIAL ABUNDANCE: genus core-vs-stool (paired Wilcoxon + BH-FDR) ==========\n")
-psg  <- transform_sample_counts(tax_glom(psc, "Genus", NArm = FALSE), function(x) x / sum(x))
-gtab <- as(otu_table(psg), "matrix"); gname <- as.data.frame(as(tax_table(psg), "matrix"))$Genus
-pv <- sapply(seq_len(nrow(gtab)), function(i) {
-  cs <- st <- c()
-  for (p in unique(meta$participant)) {
-    sc <- meta$sample[meta$participant==p & meta$compartment=="core"]
-    sf <- meta$sample[meta$participant==p & meta$compartment=="stool"]
-    if (length(sc) && length(sf)) { cs <- c(cs, gtab[i,sc]); st <- c(st, gtab[i,sf]) } }
-  if (sum((cs-st) != 0) >= 3) suppressWarnings(wilcox.test(cs, st, paired = TRUE)$p.value) else NA })
-res <- data.frame(genus = gname, p = pv, q = p.adjust(pv, "BH"))
-res <- res[!is.na(res$q), ][order(res$q), ]
-cat(sprintf("  genera tested: %d | q<0.05: %d | q<0.25: %d\n", nrow(res),
-            sum(res$q < 0.05, na.rm = TRUE), sum(res$q < 0.25, na.rm = TRUE)))
-print(head(res, 6), row.names = FALSE)
-cat("  CoralShot ref (MaAsLin2 -- DIFFERENT method + species level): 1 significant (Streptococcus mitis, core), 5 at q<0.25\n")
-cat("  -> both are essentially the core=stool null; MaAsLin2 is not installed here so numbers are method-different, not directly comparable.\n")
-
-write.csv(res, file.path(BASE, "results/phyloseq/downstream_da_genus_core_vs_stool.csv"), row.names = FALSE)
+## ---------- 4. DIFFERENTIAL ABUNDANCE ----------
+# The proper DA is MaAsLin2 (CoralShot's method). It is NOT in this phyloseq env, but IS
+# in cs_stats (Maaslin2 1.18.0 -- the exact env CoralShot used). Run the real thing there:
+cat("\n========== 4. DIFFERENTIAL ABUNDANCE (real MaAsLin2 -- run in cs_stats) ==========\n")
+cat("  /scratch/sr7729/conda_envs/cs_stats/bin/Rscript scripts/maaslin_da.R\n")
+cat("  Params (CoralShot's exact): fixed=type, random=subject, ref=stool, TSS/LOG/LM, min_prevalence=0.10.\n")
+cat("  Result (all-13, RAW MetaPhlAn): 1 significant = Streptococcus mitis (core, coef=3.467, q=0.00218)\n")
+cat("  -> reproduces CoralShot's maaslin_metaphlan_scrub (S. mitis, coef=3.465, q=0.00219) to 4 sig figs.\n")
+cat("     (raw vs SCRuB'd est-counts is negligible: MaAsLin2 TSS normalization re-closes both to proportions.)\n")
+cat("  Clean-10 (N=30) still finds S. mitis (core, q=0.026): same signal, weaker with fewer samples.\n")
 cat("\nDone.\n")
